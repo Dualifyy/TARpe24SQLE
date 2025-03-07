@@ -113,3 +113,26 @@ select * from Person where Email like '%@%'
 select * from Person where Email not like '%@%'
 
 --
+--tund 2
+
+--näitab, kellel emailis ees ja peale @märki ainult üks täht
+select * from Person where Email like '_@_.com'
+
+--kõik kellel on nimes esimene täht W,A,S
+select * from Person where name like '[^WAS]%'
+select * from Person 
+
+--kes elavad gothamis ja new yorkis
+select * from Person where City = 'Gotham' or City = 'New York'
+
+--kõik kes elavad gothami ja new yorki linnas ja on vanemad kui 29
+select * from Person where (City = 'Gotham' or City = 'New York') and Age >=30
+
+--kuvab tähestikulises järjekorras inimesi ja võtab aluseks nime
+select * from Person order by Name
+
+--sama aga vastupidises järjekorras
+select * from Person order by Name desc
+
+--kolm esimest rida
+select top 3 * from Person
