@@ -564,16 +564,16 @@ spGetEmployeesByGenderAndDepartment @DepartmentId = 1, @Gender = 'Male'
 -- soov vaadata sp sisu
 sp_helptext spGetEmployeesByGenderAndDepartment
 
---rida 576
---- 5tund
---kuidas muuta sp-d ja pane krüpteeringu peale et keegi teine peale teid ei saaks muuta
+--- 5tund 17.03.2025
+
+--- kuidas muuta sp-d ja pane krüpteeringu peale, et keegi teine peale teid ei saaks muuta
 alter proc spGetEmployeesByGenderAndDepartment
 @Gender nvarchar(20),
 @DepartmentId int
-with encryption -- krüpteerimine
+with encryption --krüpteerimine
 as begin
-    select FirstName, Gender, DepartmentId from Employees where Gender = @Gender
-    and DepartmentId = @DepartmentId
+	select FirstName, Gender, DepartmentId from Employees where Gender = @Gender
+	and DepartmentId = @DepartmentId
 end
 
 sp_helptext spGetEmployeesByGenderAndDepartment
@@ -581,176 +581,334 @@ sp_helptext spGetEmployeesByGenderAndDepartment
 -- sp tegemine
 create proc spGetEmployeeCountByGender
 @Gender nvarchar(20),
-@EmployeeCount int output 
+@EmployeeCount int output
 as begin
-    select @EmployeeCount = count(Id) from Employees where Gender = @Gender
+	select @EmployeeCount = count(Id) from Employees where Gender = @Gender
 end
 
-spGetEmployeeCountByGender @EmployeeCount = 1, @Gender = 'Female'
-sp_helptext spGetEmployeeCountByGender
-
---annab tulemuse, kus loendab ära nõuetele vastavad read
---prindib tulemuse konsooli
+-- annab tulemuse, kus loendab ära nõuetele vastavad read
+-- prindib tulemuse konsooli
 declare @TotalCount int
 execute spGetEmployeeCountByGender 'Female', @TotalCount out
-if(@TotalCount = 0) 
-    print 'TotalCount is null'
-else 
-    print '@Total is not null'
+if(@TotalCount = 0)
+	print 'TotalCount is null'
+else
+	print '@Total is not null'
 print @TotalCount
 
--- näitab ära et mitu rida vastab nõuetele
+-- näitab ära, et mitu rid vastab nõuetele
 declare @TotalCount int
 execute spGetEmployeeCountByGender @EmployeeCount = @TotalCount out, @Gender = 'Male'
 print @TotalCount
 
---sp sisu vaatamine
+-- sp sisu vaatamine
 sp_help spGetEmployeeCountByGender
---tabeli info
+-- tabeli info
 sp_help Employees
---kui soovid sp teksti näha
+-- kui soovid sp tektsi näha
 sp_helptext spGetEmployeeCountByGender
 
---vaatame, millest see sp sõltub
+-- vaatame , millest see sp sõltub
 sp_depends spGetEmployeeCountByGender
---vaatame tabelit 
+-- vaatame tabelit
 sp_depends Employees
 
+
 --
-create proc spGetNameById
+create proc spGetnameById
 @Id int,
-@FirstName nvarchar(50) output
-as begin 
-    select @FirstName = FirstName from Employees where Id = @Id
+@Name nvarchar(20) output
+as begin
+	select @Id = Id, @Name = FirstName from Employees
 end
 
 select * from Employees
 declare @FirstName nvarchar(50)
-execute spGetNameById 1, @FirstName output
+execute spGetnameById 2, @FirstName output
 print 'Name of the employee = ' + @FirstName
 
-declare @TotalCount int
-execute spGetNameById @Id = Id, @Name = 'Tom'
-print @TotalCount
-
---
-
-create proc spGetNameById2
-@Id int
-as begin 
-    return (select FirstName from Employees where Id =  @Id)
+-- mis id all on keegi nime j'rgi
+create proc spGetNameById1
+@Id int,
+@FirstName nvarchar(50) output
+as begin
+	select @FirstName = FirstName from Employees where Id = @Id
 end
 
 declare @FirstName nvarchar(50)
+execute spGetNameById1 4, @FirstName output
+print 'Name of the employee = ' + @FirstName
+
+sp_help spGetNameById1
+
+---
+create proc spGetNameById2
+@Id int
+as begin
+	return (select FirstName from Employees where Id = @Id)
+end
+
+-- tuleb veateade kuna kutsusime välja int-i, aga Tom on string
+declare @FirstName nvarchar(50)
 execute @FirstName = spGetNameById2 1
-print 'Name of the employee = ' + @FirstName 
---ei saa 'Tom' (mis on nvarchar) muuta int'iks
+print 'Name of the employee = ' + @FirstName
+--
 
-
---sisseehitatud string funktsioonid
---see konverteerib ASCII tähe väärtuse numbriks
-select ascii('A')
+--- sisseehitatud string funktsioonid
+-- see konverteerib ASCII tähe väärtuse numbriks
+select ascii('a')
 -- kuvab A-tähe
-select char (65)
+select char (66)
 
 --prindime kogu tähestiku välja
 declare @Start int
 set @Start = 97
 while (@Start <= 122)
 begin
-   select char (@Start)
-   set @Start = @Start + 1
+	select char (@Start)
+	set @Start = @Start + 1
 end
--- eemalda tühjad kohad sulgudes
 
-select ltrim('        hello world?')
+-- eemaldame tühjad kohad sulgudes
+select ltrim('        Hello')
 
 -- tühikute eemaldamine veerust
 select ltrim(FirstName) as FirstName, MiddleName, LastName from Employees
 
 select * from Employees
--- paremalt poolt tühjad stringid lõikab ära
-select rtrim('         hi wold                 ')
 
---keerab kooloni sees oleva andmed vastupidiseks
---vastava upper ja lower-ga saan muuta märkide suurust
---reverse funktsioon pöörab kõik ümber
+--paremalt poolt tühjad stringid lõikab ära
+select rtrim('      Hello          ')
 
+--keerab kooloni sees olevad andmed vastupidiseks
+-- vastavalt upper ja lower-ga saan muuta märkide suurust
+-- reverse funktsioon pöörab kõik ümber
 select REVERSE(UPPER(ltrim(FirstName))) as FirstName, MiddleName, lower(LastName),
 rtrim(ltrim(FirstName)) + ' ' + MiddleName + ' ' + LastName as FullName
 from Employees
 
--- näeb mitu tähte on sõnal ja loeb tühikud sisse
+--näeb, mitu tähte on sõnal ja loeb tühikud sisse
 select FirstName, len(FirstName) as [Total Characters] from Employees
 
---näeb mitu tähte on sõnal ja ei loe tühikuid sisse
-select FirstName, len(ltrim(rtrim(FirstName))) as [Total Characters] from Employees
+--- näeb, mitu tähte on sõnal ja ei loe tyhikuid sisse
+select FirstName, len(ltrim(FirstName)) as [Total Characters] from Employees
 
 -- left, right ja substring
 --- vasakult poolt neli esimest tähte
 select left('ABCDEF', 4)
-select right('ABCDEF', 4)
-select substring('ABCDEF', 4, 2)
-select charindex('@', 'saaaaa@aa.com') -- see on seitsmes
+-- paremalt poolt kolm tähte
+select right('ABCDEF', 3)
 
--- @ märgist kuvab kolm tähemärki .viimase nr saab määrata pikkust
-select substring('pam@bbb.com', charindex('@', 'pam@bbb.com') + 1, 3)
--- peale @-märki reguleerib tähemärkide pikkuse näitamist
-select substring('pam@bbb.com', charindex('@', 'pam@bbb.com') + 1, 
-len('pam@bbb.com') - charindex('@', 'pam@bbb.com'))
+--kuvab @-tähemärgi asetust e mitmes on @ märk
+select charindex('@', 'sara@aaa.com')
+
+--- esimene nr peale komakohta näitab, et mitmendast alustab ja siis mitu nr peale
+-- seda kuvada
+select SUBSTRING('pam@btbb.com', 5, 2)
+
+--- @-märgist kuvab kolm tähemärki. Viimase numriga saab määrata pikkust
+select substring('pam@bb.com', charindex('@', 'pam@bb.com') + 1, 3)
+
+--- peale @-märki reguleerin tähemärkide pikkuse näitamist
+select substring('pam@bb.com', charindex('@', 'pam@bb.com') + 1, 
+len('pam@bb.com') - CHARINDEX('@', 'pam@bb.com'))
+
 select * from Employees
 
--- vaja teha uus veerg nimega Email, nvarchar(20)
+-- vaja teha uus veerg nimega Email, nvarchar (20)
 alter table Employees
 add Email nvarchar(20)
 
---
-update Employees
-set Email = 'Sam@aaa.com'
-where Id = 1
-update Employees
-set Email = 'Ram@aaa.com'
-where Id = 2
-update Employees
-set Email = 'Sara@ccc.com'
-where Id = 3
-update Employees
-set Email = 'Todd@bbb.com'
-where Id = 4
-update Employees
-set Email = 'John@aaa.com'
-where Id = 5
-update Employees
-set Email = 'Sana@ccc.com'
-where Id = 6
-update Employees
-set Email = 'James@bbb.com'
-where Id = 7
-update Employees
-set Email = 'Rob@ccc.com'
-where Id = 8
-update Employees
-set Email = 'Steve@aaa.com'
-where Id = 9
-update Employees
-set Email = 'Pam@bbb.com'
-where Id = 10
+update Employees set Email = 'Tom@aaa.com' where Id = 1
+update Employees set Email = 'Pam@bbb.com' where Id = 2
+update Employees set Email = 'John@aaa.com' where Id = 3
+update Employees set Email = 'Sam@bbb.com' where Id = 4
+update Employees set Email = 'Todd@bbb.com' where Id = 5
+update Employees set Email = 'Ben@ccc.com' where Id = 6
+update Employees set Email = 'Sara@ccc.com' where Id = 7
+update Employees set Email = 'Valarie@aaa.com' where Id = 8
+update Employees set Email = 'James@bbb.com' where Id = 9
+update Employees set Email = 'Russel@bbb.com' where Id = 10
 
+select * from Employees
 
---- lisame * märgiga alates teatud kohast
+--- lisame *-märgi alates teatud kohast
 select FirstName, LastName,
-substring(Email, 1, 2) + replicate('*', 5) + --peale teist tähemärki paneb viis tärni
-substring(Email, charindex('@', Email), len(Email) - charindex('@', Email)+1) as Email
+	substring(Email, 1, 2) + REPLICATE('*', 5) + --peale teist tähemärki paneb viis tärni
+	SUBSTRING(Email, CHARINDEX('@', Email), len(Email) - charindex('@', Email)+1) as Email
 from Employees
 
---kolm korda näitab stringis olevat väärtust
+--- kolm korda näitab stringis olevat väärtust
 select replicate(FirstName, 3)
-From Employees
+from Employees
 
--- kuidas sisestada tühikut kahe nime vahele
+select replicate('asd', 3)
+
+-- kuidas sisestada tyhikut kahe nime vahele
 select space(5)
 
---employee tabelist teeed päringu kahe nime osas
+--Employees tabelist teed päringu kahe nime osas (FirstName ja LastName)
 --kahe nime vahel on 25 tühikut
-select FirstName, LastName from Employees
-select FirstName + space(25) + LastName as FullName from Employees
+select FirstName + space(25) + LastName as FullName
+from Employees
+
+-- rida 782
+---- 6 tund
+
+--PATINDEX
+--sama mis on charIndex, aga dünaamilisem ja saab kasutada sellist asja nagu wildcard
+select Email, PATINDEX('%@aaa.com', Email) as FirstOccurence
+from Employees
+where PATINDEX('%@aaa.com', Email) > 0 --leian kõik selle domeeni esindajad ja
+--alates mitmendast märgist algab @
+--kõik .com-d asendatakse .net-ga
+select Email, replace(Email, '.com', '.net') as ConvertedEmail
+from Employees
+
+--soovin asendada peale esimest märki kolm tähte viie tärniga
+select FirstName, LastName, Email,
+stuff(Email, 2, 3, '*****') as StuffedEmail
+from Employees
+
+---ajatüübid
+create table DateTime
+(
+c_time time,
+c_date date,
+c_smalldatetime smalldatetime,
+c_datetime datetime,
+c_datetime2 datetime2,
+c_datetimeoffset datetimeoffset
+)
+
+select * from DateTime
+
+--masina kellaaja teada saamine
+select GETDATE(), 'GETDATE()'
+
+insert into DateTime
+values(getdate(), getdate(), getdate(), getdate(), getdate(), getdate())
+
+update DateTime set c_datetimeoffset = '2025-04-08 10:59:29.1933333 + 10:00'
+where c_datetimeoffset = '2025-03-24 09:01:41.2466667 +00:00'
+
+select CURRENT_TIMESTAMP, 'CURRENT_TIMESTAMP' --aja päring
+select SYSDATETIME() -- veel täpsem ajapäring
+select SYSDATETIMEOFFSET()
+select GETUTCDATE() --utc aeg
+
+
+select isdate('asd') -- tagastab 0 kuna string ei ole date e aeg,
+
+select isdate(getdate()) -- tagastab 1 kuna on kuupäev
+select isdate('09:19:05.3998499') --tagastab 0 kuna maksimum 3 komakohta võib olla
+select isdate('09:19:05.399') --tagastab 1
+
+select day(getdate()) --annab tänase päeva nr
+
+select day('01/31/2017') --annab strings oleva päeva nr
+select month('01/31/2017')
+select month(getdate())
+select year('01/31/2017')
+select year(getdate())
+
+select datename(day, '2025-03-24 09:19:05.399')
+select datename(weekday, '2025-03-24 09:19:05.399')
+select datename(month, '2025-03-24 09:19:05.399')
+
+create table EmployeesWithDates
+(
+Id nvarchar(2),
+Name nvarchar(20),
+DateOfBirth datetime
+)
+
+insert into EmployeesWithDates(Name, DateOfBirth)
+values('Sam', '1980-12-30 00:00:00.000')
+insert into EmployeesWithDates(Name, DateOfBirth)
+values('Pam', '1982-09-01 12:02:36.260')
+insert into EmployeesWithDates(Name, DateOfBirth)
+values('John', '1985-08-22 12:03:30.370')
+insert into EmployeesWithDates(Name, DateOfBirth)
+values('Sara', '1979-11-29 12:59:30.670')
+
+
+select * From EmployeesWithDates
+
+--kuidas võtta ühest veerust andmeid ja selle abil luua uued veerud
+--vaatab DoB veerust  päeva ja kuvab päeva nimetuse sõnana
+select Name, DateOfBirth, datename(weekday, DateOfBirth) as [Day],
+month(DateOfBirth) as MonthNumber,
+DateName(MONTH, DateOfBirth) as [MonthName],
+Year(DateOfBirth) as [Year]
+from EmployeesWithDates
+--vaatab DoB veerust kuupäevad ja kuvab kuu nr
+-- vaatab DoB veerust kuud ja kuvab selle sõnana
+-- võtab DoB veerust aasta
+
+select DATEPART(weekday, '2025-03-30 12:22:56.401') -- algab pühapäevast
+select DATEPART(MONTH, '2025-03-30 12:22:56.401')
+select DATEADD(day,20, '2025-03-30 12:22:56.401') -- liidab stringis olevale kuupäevale 20 päeva juurde
+select DATEADD(day, -20, '2025-03-30 12:22:56.401')
+select datediff(MONTH, '11/30/2024', '03/24/2025') -- kuvab kahe stringi kuudevahelist aega nr-na
+select datediff(YEAR, '11/30/2024', '03/24/2025')
+--funktsiooni tegemine
+create function fnComputeAge(@DOB datetime)
+returns nvarchar(50)
+as begin
+declare @tempdate datetime, @years int, @months int, @days int
+select @tempdate = @DOB
+
+select @years = datediff(year, @tempdate, getdate()) - case when (month(@DOB) > month(GETDATE())) or (MONTH(@DOB)
+= month (getdate()) and day(@DOB) > day(getdate())) then 1 else 0 end
+select @tempdate = dateadd(year, @years, @tempdate)
+
+select @months = datediff(month, @tempdate, getdate()) - case when day(@DOB) > day(getdate()) then 1 else 0 end
+select @tempdate = dateadd(Month, @months, @tempdate)
+
+select @days = datediff(day, @tempdate, getdate())
+
+declare @Age nvarchar(50)
+set @Age = cast(@years as nvarchar(4)) + ' Years ' + cast(@months as nvarchar(2)) + ' Months ' + cast(@days as nvarchar(2)) + ' Days Old '
+return @Age
+end
+
+--saame vaadata kasutaja vanust
+select Id, Name, DateOfBirth, dbo.fnComputeAge(DateOfBirth) as Age
+from EmployeesWithDates
+
+
+--kui kasutam seda funktsiooni, siis saame teada tänase päeva vahet stringis välja tooduga
+select dbo.fnComputeAge('04/09/2008')
+
+--nr peale DOB muutujat näitab DOB-d
+select Id, Name, DateOfBirth,
+convert(nvarchar, DateOfBirth, 106) as ConvertedDOB
+from EmployeesWithDates
+
+select Id, Name, Name + ' - ' + cast(Id as nvarchar) as [Name-Id] from EmployeesWithDates 
+
+select cast(getdate() as date) --tänane kuupäev
+select convert(nvarchar, getdate(), 1) as ConvertedDOB --tänane kuupäev
+
+--matemaatilised funtsioonid
+select abs(-101.2) ---absoluut väärtus
+select ceiling(15.2) --tagastab 16 ja suurendab suurema arvuni
+select ceiling(-15.2) -- 15 ja suuremani
+select floor(13.9) -- väiksemani 13
+select floor(-15.2) -- 16
+select power(2, 4) -- kaks astmes 4
+select square(9)
+select sqrt(9)
+
+declare @Constant as int
+set @constant = 10
+select round(@constant * rand(), 0, 0) as RandomNumber
+
+declare @counter int
+set @counter = 1
+while (@counter <= 10)
+begin
+print floor(rand() *1000)
+set @counter = @counter + 1
+end
